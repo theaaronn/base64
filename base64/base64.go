@@ -2,6 +2,7 @@ package base64
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 )
 
@@ -18,6 +19,11 @@ var base64Map = map[int]string{
 	56: "4", 57: "5", 58: "6", 59: "7", 60: "8", 61: "9", 62: "+", 63: "/",
 }
 
+/*
+* When converting to binary zeros at the left are deleted, which if missing, can corrupt the data
+* Example: 001010 turns into 1010
+* Thats this function reason to be
+ */
 func format6BitBinary(strToPad string) string {
 	finalStr := strToPad
 	strLen := len(strToPad)
@@ -29,29 +35,19 @@ func format6BitBinary(strToPad string) string {
 
 	return finalStr
 }
-
-func pad6BitBinary(strToPad string) string {
-	finalStr := strToPad
-	strLen := len(strToPad)
-
-	for strLen != 6 {
-		finalStr = finalStr + "0"
-		strLen += 1
+func pad6BitBinary(str *string, howMuch int) {
+	for range howMuch {
+		*str += "0"
 	}
-
-	return finalStr
 }
-
-/* func padNotMultiple3(wordLength int, strToPad string) string {
-	finalStr := strToPad
-
-	for wordLength%3 != 0 {
-		finalStr += "="
-		wordLength += 1
+func StripPaddingBits(str string, howMuch int) string {
+	return str[:len(str)-howMuch]
+}
+func AddPaddingEquals(str *string, howMuch int) {
+	for range howMuch {
+		*str += "="
 	}
-
-	return finalStr
-} */
+}
 
 func mapKey(value string) int {
 	for k, v := range base64Map {
@@ -68,8 +64,15 @@ func Encode64(initialString string) (string, error) {
 	}
 	var (
 		finalString, chunk, binString string
+		paddingToAdd                  = 0
 		index                         = 0
 	)
+
+	// If the module isn't 0 (then it can only be 1 or 2), substract 3 and get absolute value (make it positive) to get the padding corresponding to the length of the string
+	module := len(initialString) % 3
+	if module != 0 {
+		paddingToAdd = int(math.Abs(float64((module) - 3)))
+	}
 
 	for _, char := range initialString {
 		ascii := int(char)
@@ -80,6 +83,8 @@ func Encode64(initialString string) (string, error) {
 		}
 		binString += bin8
 	}
+	pad6BitBinary(&binString, paddingToAdd*2)
+
 	for range len(binString) / 6 {
 		chunk = binString[index : index+6]
 		index += 6
@@ -89,26 +94,39 @@ func Encode64(initialString string) (string, error) {
 		}
 		finalString += base64Map[int(decimalChunk)]
 	}
+	AddPaddingEquals(&finalString, paddingToAdd)
 
 	return finalString, nil
 }
 
 func Decode64(initialString string) (string, error) {
+	if len(initialString) == 0 {
+		return "", nil
+	}
 	var (
-		mapIndexes  = make([]int, 0)
-		bitString   = ""
-		index       = 0
-		finalString = ""
+		mapIndexes     = make([]int, 0)
+		binString      = ""
+		index          = 0
+		finalString    = ""
+		paddingToStrip = 0
 	)
+
 	for _, char := range initialString {
-		mapIndexes = append(mapIndexes, mapKey(string(char)))
+		if char == '=' {
+			paddingToStrip += 2
+		} else {
+			mapIndexes = append(mapIndexes, mapKey(string(char)))
+		}
 	}
 	for _, index := range mapIndexes {
 		bin6 := strconv.FormatInt(int64(index), 2)
-		bitString += format6BitBinary(bin6)
+		binString += format6BitBinary(bin6)
 	}
-	for range len(bitString) / 8 {
-		bin8 := bitString[index : index+8]
+
+	binString = StripPaddingBits(binString, paddingToStrip)
+
+	for range len(binString) / 8 {
+		bin8 := binString[index : index+8]
 		index += 8
 		decimalNum, err := strconv.ParseInt(bin8, 2, 64)
 		if err != nil {

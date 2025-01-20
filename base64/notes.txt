@@ -1,0 +1,11 @@
+2 away from multiple of three
+Encode: append = =
+Decode: strip 4 zeros at the right hand side
+
+1 away from multiple of three
+Encode: append =
+Decode: strip 2 zeros
+
+Solution!!! If char == "=" strip 2 zeros at the end of string
+
+
