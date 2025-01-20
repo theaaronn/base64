@@ -5,12 +5,19 @@ import (
 	"testing"
 )
 
-var expectationsMultiple3 = map[string]string{
-	"mex":             "bWV4",
-	"not my problem!": "bm90IG15IHByb2JsZW0h",
-	"abcdef":          "YWJjZGVm",
-	"deez nuts":       "ZGVleiBudXRz",
+var expectations = map[string]string{
 	"":                "",
+	" ":               "IA==",
+	"=":               "PQ==",
+	"A":               "QQ==",
+	"XO":              "WE8=",
+	"mex":             "bWV4",
+	"water":           "d2F0ZXI=",
+	"abcdef":          "YWJjZGVm",
+	"cowshed":         "Y293c2hlZA==",
+	"deez nuts":       "ZGVleiBudXRz",
+	"not my problem!": "bm90IG15IHByb2JsZW0h",
+	"is not like I want to break the encoding": "aXMgbm90IGxpa2UgSSB3YW50IHRvIGJyZWFrIHRoZSBlbmNvZGluZw==",
 }
 
 func AssureChars(first, second string) error {
@@ -26,8 +33,8 @@ func AssureChars(first, second string) error {
 	return nil
 }
 
-func Test64EncodeMultiple3(t *testing.T) {
-	for input, encoded := range expectationsMultiple3 {
+func Test64Encode(t *testing.T) {
+	for input, encoded := range expectations {
 		outcome, err := Encode64(input)
 		if err != nil {
 			t.Fatalf("%s", err.Error())
@@ -42,8 +49,8 @@ func Test64EncodeMultiple3(t *testing.T) {
 	}
 }
 
-func Test64DecodeMultiple3(t *testing.T) {
-	for decoded, encoded := range expectationsMultiple3 {
+func Test64Decode(t *testing.T) {
+	for decoded, encoded := range expectations {
 		outcome, err := Decode64(encoded)
 		if err != nil {
 			t.Fatalf("%s", err.Error())
