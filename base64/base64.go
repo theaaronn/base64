@@ -1,6 +1,9 @@
 package base64
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 // Support other formats than only ascii?
 
@@ -15,11 +18,11 @@ var base64Map = map[int]string{
 	56: "4", 57: "5", 58: "6", 59: "7", 60: "8", 61: "9", 62: "+", 63: "/",
 }
 
-func pad8BitBinary(strToPad string) string {
+func format6BitBinary(strToPad string) string {
 	finalStr := strToPad
 	strLen := len(strToPad)
 
-	for strLen != 8 {
+	for strLen != 6 {
 		finalStr = "0" + finalStr
 		strLen = len(finalStr)
 	}
@@ -32,8 +35,8 @@ func pad6BitBinary(strToPad string) string {
 	strLen := len(strToPad)
 
 	for strLen != 6 {
-		finalStr = "0" + finalStr
-		strLen = len(finalStr)
+		finalStr = finalStr + "0"
+		strLen += 1
 	}
 
 	return finalStr
@@ -50,7 +53,7 @@ func pad6BitBinary(strToPad string) string {
 	return finalStr
 } */
 
-func getMapKey(value string) int {
+func mapKey(value string) int {
 	for k, v := range base64Map {
 		if v == value {
 			return k
@@ -60,6 +63,9 @@ func getMapKey(value string) int {
 }
 
 func Encode64(initialString string) (string, error) {
+	if len(initialString) == 0 {
+		return "", nil
+	}
 	var (
 		finalString, chunk, binString string
 		index                         = 0
@@ -69,11 +75,11 @@ func Encode64(initialString string) (string, error) {
 		ascii := int(char)
 		bin8 := strconv.FormatInt(int64(ascii), 2)
 		if len(bin8) != 8 {
-			bin8 = pad8BitBinary(bin8)
+			// Fill with zeros at the right till eight characters
+			bin8 = fmt.Sprintf("%08s", bin8)
 		}
 		binString += bin8
 	}
-
 	for range len(binString) / 6 {
 		chunk = binString[index : index+6]
 		index += 6
@@ -81,7 +87,6 @@ func Encode64(initialString string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
 		finalString += base64Map[int(decimalChunk)]
 	}
 
@@ -89,16 +94,18 @@ func Encode64(initialString string) (string, error) {
 }
 
 func Decode64(initialString string) (string, error) {
-	mapIndexes := make([]int, len(initialString))
-	bitString := ""
-	index := 0
-	finalString := ""
+	var (
+		mapIndexes  = make([]int, 0)
+		bitString   = ""
+		index       = 0
+		finalString = ""
+	)
 	for _, char := range initialString {
-		mapIndexes = append(mapIndexes, getMapKey(string(char)))
+		mapIndexes = append(mapIndexes, mapKey(string(char)))
 	}
 	for _, index := range mapIndexes {
 		bin6 := strconv.FormatInt(int64(index), 2)
-		bitString += pad6BitBinary(bin6)
+		bitString += format6BitBinary(bin6)
 	}
 	for range len(bitString) / 8 {
 		bin8 := bitString[index : index+8]
