@@ -1,3 +1,3 @@
-module base32and64
+module github.com/theaaronn/base64
 
-go 1.23.0
+go 1.24
