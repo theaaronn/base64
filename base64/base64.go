@@ -79,7 +79,7 @@ func Encode64(initialString string) (string, error) {
 		bin8 := strconv.FormatInt(int64(ascii), 2)
 		if len(bin8) != 8 {
 			// Fill with zeros at the right till eight characters
-			bin8 = fmt.Sprintf("%08s", bin8)
+			bin8 = fmt.Sprintf("%08s", bin8)	
 		}
 		binString += bin8
 	}

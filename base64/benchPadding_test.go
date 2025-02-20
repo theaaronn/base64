@@ -24,7 +24,7 @@ func formatPad6(str string) string {
 
 func BenchmarkManualPad6(b *testing.B) {
 	var s string
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		s = manualPad6("123")
 	}
 	result = s
@@ -32,12 +32,11 @@ func BenchmarkManualPad6(b *testing.B) {
 
 func BenchmarkFormatPad6(b *testing.B) {
 	var s string
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		s = formatPad6("123")
 	}
 	result = s
 }
-
 
 func manualPad8(str string) string {
 	strLen := len(str)
@@ -56,7 +55,7 @@ func formatPad8(str string) string {
 
 func BenchmarkManualPad8(b *testing.B) {
 	var s string
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		s = manualPad8("123")
 	}
 	result = s
@@ -64,7 +63,7 @@ func BenchmarkManualPad8(b *testing.B) {
 
 func BenchmarkFormatPad8(b *testing.B) {
 	var s string
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		s = formatPad8("123")
 	}
 	result = s
