@@ -35,7 +35,7 @@ func AssureChars(first, second string) error {
 
 func Test64Encode(t *testing.T) {
 	for input, encoded := range expectations {
-		outcome, err := Encode64(input)
+		outcome, err := Encode(input)
 		if err != nil {
 			t.Fatalf("%s", err.Error())
 		}
@@ -51,7 +51,7 @@ func Test64Encode(t *testing.T) {
 
 func Test64Decode(t *testing.T) {
 	for decoded, encoded := range expectations {
-		outcome, err := Decode64(encoded)
+		outcome, err := Decode(encoded)
 		if err != nil {
 			t.Fatalf("%s", err.Error())
 		}

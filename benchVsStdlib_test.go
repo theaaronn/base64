@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	str  = ""
+	str = ""
 	str2 = [8]byte{}
 )
 
@@ -34,7 +34,7 @@ func BenchmarkEncodeStd(b *testing.B) {
 
 func ownEncode() {
 	input := "foobar"
-	str, _ = Encode64(input)
+	str, _ = Encode(input)
 }
 
 func BenchmarkEncodeOwn(b *testing.B) {
