@@ -1,138 +1,99 @@
 package base64
 
 import (
-	"fmt"
+	"errors"
 	"math"
-	"strconv"
+	"strings"
 )
 
-// Support other formats than only ascii?
-
-var base64Map = map[int]string{
-	0: "A", 1: "B", 2: "C", 3: "D", 4: "E", 5: "F", 6: "G", 7: "H",
-	8: "I", 9: "J", 10: "K", 11: "L", 12: "M", 13: "N", 14: "O", 15: "P",
-	16: "Q", 17: "R", 18: "S", 19: "T", 20: "U", 21: "V", 22: "W", 23: "X",
-	24: "Y", 25: "Z", 26: "a", 27: "b", 28: "c", 29: "d", 30: "e", 31: "f",
-	32: "g", 33: "h", 34: "i", 35: "j", 36: "k", 37: "l", 38: "m", 39: "n",
-	40: "o", 41: "p", 42: "q", 43: "r", 44: "s", 45: "t", 46: "u", 47: "v",
-	48: "w", 49: "x", 50: "y", 51: "z", 52: "0", 53: "1", 54: "2", 55: "3",
-	56: "4", 57: "5", 58: "6", 59: "7", 60: "8", 61: "9", 62: "+", 63: "/",
+var paddingEqualsMapEnc = map[int]int{
+	1: 2,
+	2: 1,
+	3: 0,
+}
+var paddingBitsMapEnc = map[int]int{
+	1: 4,
+	2: 2,
+	3: 0,
 }
 
-/*
-* When converting to binary zeros at the left are deleted, which if missing, can corrupt the data
-* Example: 001010 turns into 1010
-* Thats this function reason to be
- */
-func format6BitBinary(strToPad string) string {
-	finalStr := strToPad
-	strLen := len(strToPad)
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
-	for strLen != 6 {
-		finalStr = "0" + finalStr
-		strLen = len(finalStr)
-	}
-
-	return finalStr
-}
-func pad6BitBinary(str *string, howMuch int) {
-	for range howMuch {
-		*str += "0"
-	}
-}
-func StripPaddingBits(str string, howMuch int) string {
-	return str[:len(str)-howMuch]
-}
-func AddPaddingEquals(str *string, howMuch int) {
-	for range howMuch {
-		*str += "="
-	}
+var alphabetMap = map[rune]int{
+	'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7,
+	'I': 8, 'J': 9, 'K': 10, 'L': 11, 'M': 12, 'N': 13, 'O': 14, 'P': 15,
+	'Q': 16, 'R': 17, 'S': 18, 'T': 19, 'U': 20, 'V': 21, 'W': 22, 'X': 23,
+	'Y': 24, 'Z': 25, 'a': 26, 'b': 27, 'c': 28, 'd': 29, 'e': 30, 'f': 31,
+	'g': 32, 'h': 33, 'i': 34, 'j': 35, 'k': 36, 'l': 37, 'm': 38, 'n': 39,
+	'o': 40, 'p': 41, 'q': 42, 'r': 43, 's': 44, 't': 45, 'u': 46, 'v': 47,
+	'w': 48, 'x': 49, 'y': 50, 'z': 51, '0': 52, '1': 53, '2': 54, '3': 55,
+	'4': 56, '5': 57, '6': 58, '7': 59, '8': 60, '9': 61, '+': 62, '/': 63,
 }
 
-func mapKey(value string) int {
-	for k, v := range base64Map {
-		if v == value {
-			return k
-		}
-	}
-	return 0
-}
-
-func Encode64(initialString string) (string, error) {
-	if len(initialString) == 0 {
+func Encode(initialString string) (finalString string, err error) {
+	length := len(initialString)
+	if length == 0 {
 		return "", nil
 	}
+
 	var (
-		finalString, chunk, binString string
-		paddingToAdd                  = 0
-		index                         = 0
+		sb         strings.Builder
+		inputBytes = []byte(initialString)
+		start      = 0
+		end        = 0
+		buf        = 0
 	)
 
-	// If the module isn't 0 (then it can only be 1 or 2), substract 3 and get absolute value (make it positive) to get the padding corresponding to the length of the string
-	module := len(initialString) % 3
-	if module != 0 {
-		paddingToAdd = int(math.Abs(float64((module) - 3)))
-	}
+	sb.Grow(length*8/3 + 2)
 
-	for _, char := range initialString {
-		ascii := int(char)
-		bin8 := strconv.FormatInt(int64(ascii), 2)
-		if len(bin8) != 8 {
-			// Fill with zeros at the right till eight characters
-			bin8 = fmt.Sprintf("%08s", bin8)	
+	for end != length {
+		start = end
+		end = min(end+3, length)
+		chunk := inputBytes[start:end]
+
+		for _, b := range chunk {
+			buf = (buf << 8) + int(b)
 		}
-		binString += bin8
-	}
-	pad6BitBinary(&binString, paddingToAdd*2)
-
-	for range len(binString) / 6 {
-		chunk = binString[index : index+6]
-		index += 6
-		decimalChunk, err := strconv.ParseInt(chunk, 2, 64)
-		if err != nil {
-			return "", err
+		buf <<= paddingBitsMapEnc[len(chunk)]
+		numChars := int(math.Ceil(float64(len(chunk)*8) / 6))
+		for i := numChars - 1; i >= 0; i-- {
+			val := (buf >> (i * 6)) & 0x3F
+			sb.WriteByte(alphabet[val])
 		}
-		finalString += base64Map[int(decimalChunk)]
+		// Pad equals
+		for range paddingEqualsMapEnc[len(chunk)] {
+			sb.WriteByte('=')
+		}
+		buf = 0
 	}
-	AddPaddingEquals(&finalString, paddingToAdd)
-
-	return finalString, nil
+	return sb.String(), nil
 }
 
-func Decode64(initialString string) (string, error) {
-	if len(initialString) == 0 {
+func Decode(encodedStr string) (decodedStr string, err error) {
+	length := len(encodedStr)
+	if length == 0 {
 		return "", nil
 	}
+
+	encodedStr = strings.TrimRight(encodedStr, "=")
 	var (
-		mapIndexes     = make([]int, 0)
-		binString      = ""
-		index          = 0
-		finalString    = ""
-		paddingToStrip = 0
+		output   = make([]byte, 0, length*3/8+4)
+		buf      int
+		bitsLeft int
 	)
 
-	for _, char := range initialString {
-		if char == '=' {
-			paddingToStrip += 2
+	for _, char := range encodedStr {
+		if val, ok := alphabetMap[char]; ok {
+			buf = (buf << 6) | val
+			bitsLeft += 6
+			for bitsLeft >= 8 {
+				bitsLeft -= 8
+				b := (buf >> bitsLeft) & 0xFF
+				output = append(output, byte(b))
+			}
 		} else {
-			mapIndexes = append(mapIndexes, mapKey(string(char)))
+			return "", errors.New("invalid character in input")
 		}
 	}
-	for _, index := range mapIndexes {
-		bin6 := strconv.FormatInt(int64(index), 2)
-		binString += format6BitBinary(bin6)
-	}
-
-	binString = StripPaddingBits(binString, paddingToStrip)
-
-	for range len(binString) / 8 {
-		bin8 := binString[index : index+8]
-		index += 8
-		decimalNum, err := strconv.ParseInt(bin8, 2, 64)
-		if err != nil {
-			return "", err
-		}
-		finalString += string(rune(decimalNum))
-	}
-	return finalString, nil
+	return string(output), nil
 }
