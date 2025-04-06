@@ -34,33 +34,37 @@ func AssureChars(first, second string) error {
 }
 
 func Test64Encode(t *testing.T) {
-	for input, encoded := range expectations {
-		outcome, err := Encode(input)
-		if err != nil {
-			t.Fatalf("%s", err.Error())
-		}
-		if outcome != encoded {
-			t.Fatalf("Incorrect output from base64 encoding: %s, expected %s and got %s", input, encoded, outcome)
-		}
-		charsAssurement := AssureChars(outcome, encoded)
-		if charsAssurement != nil {
-			t.Fatalf("%s", charsAssurement.Error())
-		}
+	for input, expected := range expectations {
+		t.Run(input, func(t *testing.T) {
+			outcome, err := Encode(input)
+			if err != nil {
+				t.Error(err.Error())
+			}
+			if outcome != expected {
+				t.Errorf("Incorrect output from base64 encoding: %s, expected %s and got %s", input, outcome, outcome)
+			}
+			charsAssurement := AssureChars(outcome, expected)
+			if charsAssurement != nil {
+				t.Error(charsAssurement.Error())
+			}
+		})
 	}
 }
 
 func Test64Decode(t *testing.T) {
 	for decoded, encoded := range expectations {
-		outcome, err := Decode(encoded)
-		if err != nil {
-			t.Fatalf("%s", err.Error())
-		}
-		if outcome != decoded {
-			t.Fatalf("Incorrect output from base64 decoding: %s, expected '%s' and got '%s'", encoded, decoded, outcome)
-		}
-		charsAssurement := AssureChars(outcome, decoded)
-		if charsAssurement != nil {
-			t.Fatalf("%s", charsAssurement.Error())
-		}
+		t.Run(decoded, func(t *testing.T) {
+			outcome, err := Decode(encoded)
+			if err != nil {
+				t.Error(err.Error())
+			}
+			if outcome != decoded {
+				t.Errorf("Incorrect output from base64 decoding: %s, expected '%s' and got '%s'", encoded, decoded, outcome)
+			}
+			charsAssurement := AssureChars(outcome, decoded)
+			if charsAssurement != nil {
+				t.Error(charsAssurement.Error())
+			}
+		})
 	}
 }
